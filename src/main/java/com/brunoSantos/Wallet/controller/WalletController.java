@@ -1,12 +1,14 @@
 package com.brunoSantos.Wallet.controller;
 
 import com.brunoSantos.Wallet.dto.ActionDto;
+import com.brunoSantos.Wallet.entity.Stock;
 import com.brunoSantos.Wallet.service.ServiceWallet;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.List;
 
 
 @RestController
@@ -17,7 +19,7 @@ public class WalletController {
     private ServiceWallet serviceWallet;
 
     @GetMapping
-    public ResponseEntity<ArrayList<ActionDto>> listAllWallets() {
+    public ResponseEntity<List<Stock>> listAllWallets() {
         return ResponseEntity.ok(serviceWallet.getAllActions());
     }
 
