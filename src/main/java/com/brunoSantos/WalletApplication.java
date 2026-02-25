@@ -1,4 +1,4 @@
-package com.brunoSantos.Wallet;
+package com.brunoSantos;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

@@ -1,4 +1,4 @@
-package com.brunoSantos.Wallet;
+package com.brunoSantos.wallet;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

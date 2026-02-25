@@ -1,15 +1,16 @@
-package com.brunoSantos.Wallet.client;
+package com.brunoSantos.market.service;
 
-import com.brunoSantos.Wallet.client.dto.BrapiResponseDto;
+import com.brunoSantos.market.service.dto.MarketDataServiceDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(name = "stock", url="https://brapi.dev/api")
-public interface BrapiClient {
+public interface MarketDataService {
 
     @GetMapping("/quote/{stockId}")
-    BrapiResponseDto getStock(@RequestParam("token") String token,
-                                        @PathVariable("stockId") String stockId);
+    MarketDataServiceDto getStock(@RequestParam("token") String token,
+                                  @PathVariable("stockId") String stockId);
+
 }

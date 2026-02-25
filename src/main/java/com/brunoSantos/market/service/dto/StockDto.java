@@ -1,4 +1,4 @@
-package com.brunoSantos.Wallet.client.dto;
+package com.brunoSantos.market.service.dto;
 
 public record StockDto(double regularMarketPrice) {
 }
