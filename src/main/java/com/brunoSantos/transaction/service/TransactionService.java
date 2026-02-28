@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -34,16 +35,21 @@ public class TransactionService {
                 .orElseThrow(() -> new RuntimeException("Wallet not found"));
 
         var asset = assetRepository.findByTicker(request.ticker())
-                .orElseThrow(() -> new RuntimeException("Asset not found"));
+                .orElse(assetRepository.save(Asset.builder()
+                        .name(request.ticker()).
+                        ticker(request.ticker())
+                        .currentPrice(BigDecimal.ZERO)
+                        .lastUpdate(LocalDateTime.now())
+                        .build()));
 
         var position = positionRepository
                 .findByWalletAndAsset(wallet, asset)
                 .orElseGet(() -> createEmptyPosition(wallet, asset));
 
         if (request.type() == TransactionType.BUY) {
-            handleBuy(position, request);
+            position.buy(request.quantity(), request.price());
         } else {
-            handleSell(position, request);
+            position.sell(request.quantity());
         }
 
         positionRepository.save(position);
@@ -58,42 +64,13 @@ public class TransactionService {
                 .build());
     }
 
-    private void handleBuy(AssetPosition position, CreateTransactionRequest request) {
-
-        var totalInvested = position.getQuantity()
-                .multiply(position.getAveragePrice())
-                .add(request.quantity().multiply(request.price()));
-
-        var newQuantity = position.getQuantity().add(request.quantity());
-
-        var newAvgPrice = totalInvested.divide(newQuantity, 6, RoundingMode.HALF_UP);
-
-        position.setQuantity(newQuantity);
-        position.setAveragePrice(newAvgPrice);
-    }
-
-    private void handleSell(AssetPosition position, CreateTransactionRequest request) {
-
-        if (position.getQuantity().compareTo(request.quantity()) < 0) {
-            throw new RuntimeException("Insufficient quantity for sell");
-        }
-
-        BigDecimal newQuantity = position.getQuantity().subtract(request.quantity());
-
-        position.setQuantity(newQuantity);
-
-        if (newQuantity.compareTo(BigDecimal.ZERO) == 0) {
-            position.setAveragePrice(BigDecimal.ZERO);
-        }
-    }
-
     private AssetPosition createEmptyPosition(Wallet wallet, Asset asset) {
         return AssetPosition
                 .builder()
                 .wallet(wallet)
                 .asset(asset)
                 .quantity(BigDecimal.ZERO)
-                .price(BigDecimal.ZERO)
+                .averagePrice(BigDecimal.ZERO)
                 .build();
     }
 
