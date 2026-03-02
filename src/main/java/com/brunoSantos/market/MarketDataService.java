@@ -1,6 +1,6 @@
-package com.brunoSantos.market.service;
+package com.brunoSantos.market;
 
-import com.brunoSantos.market.service.dto.MarketDataServiceDto;
+import com.brunoSantos.market.dto.MarketDataServiceDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

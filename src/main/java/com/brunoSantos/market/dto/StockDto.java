@@ -1,4 +1,4 @@
-package com.brunoSantos.market.service.dto;
+package com.brunoSantos.market.dto;
 
 public record StockDto(double regularMarketPrice) {
 }

@@ -1,4 +1,4 @@
-package com.brunoSantos.transaction;
+package com.brunoSantos.transaction.controller;
 
 import com.brunoSantos.transaction.dto.CreateTransactionRequest;
 import com.brunoSantos.transaction.dto.TransactionResponse;
