@@ -2,11 +2,13 @@ package com.brunoSantos.wallet_app.position.domain;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.*;
 
+@ActiveProfiles("test")
 class AssetPositionTest {
     private AssetPosition position;
 

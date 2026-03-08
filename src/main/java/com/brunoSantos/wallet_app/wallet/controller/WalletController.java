@@ -1,10 +1,13 @@
 package com.brunoSantos.wallet_app.wallet.controller;
 
 import com.brunoSantos.wallet_app.wallet.dto.CreateWalletRequest;
+import com.brunoSantos.wallet_app.wallet.dto.UpdateWalletRequest;
 import com.brunoSantos.wallet_app.wallet.dto.WalletResponse;
+import com.brunoSantos.wallet_app.wallet.exception.WalletExistsException;
 import com.brunoSantos.wallet_app.wallet.service.WalletService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,9 +22,13 @@ public class WalletController {
     private final WalletService walletService;
 
     @PostMapping
-    public WalletResponse create(@RequestBody @Valid CreateWalletRequest request) {
+    public ResponseEntity<WalletResponse> create(@RequestBody @Valid CreateWalletRequest request) {
+
         var wallet = walletService.createWallet(request.name());
-        return WalletResponse.fromEntity(wallet);
+
+        return ResponseEntity.ok(
+                WalletResponse.fromEntity(wallet)
+        );
     }
 
     @GetMapping("/{id}")
@@ -36,6 +43,11 @@ public class WalletController {
                 .stream()
                 .map(WalletResponse::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    @PutMapping
+    public WalletResponse renameWallet(@RequestBody UpdateWalletRequest updateWalletRequest) {
+        return WalletResponse.fromEntity(walletService.update(updateWalletRequest));
     }
 
     @DeleteMapping("/{id}")
