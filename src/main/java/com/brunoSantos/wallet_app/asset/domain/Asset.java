@@ -1,6 +1,9 @@
 package com.brunoSantos.wallet_app.asset.domain;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -25,4 +28,11 @@ public class Asset {
     private BigDecimal currentPrice;
 
     private LocalDateTime lastUpdate;
+
+
+    public void updatePrice(BigDecimal price, LocalDateTime lastUpdate) {
+        this.currentPrice = price;
+        this.lastUpdate = lastUpdate;
+    }
+
 }
