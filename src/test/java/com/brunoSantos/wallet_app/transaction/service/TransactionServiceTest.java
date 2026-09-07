@@ -66,7 +66,8 @@ class TransactionServiceTest {
                 "PETR4",
                 TransactionType.BUY,
                 BigDecimal.valueOf(10),
-                BigDecimal.valueOf(100)
+                BigDecimal.valueOf(100),
+                "01/01/2024"
         );
 
         var position = AssetPosition.builder()
@@ -100,7 +101,8 @@ class TransactionServiceTest {
                 "VALE3",
                 TransactionType.BUY,
                 BigDecimal.valueOf(5),
-                BigDecimal.valueOf(50)
+                BigDecimal.valueOf(50),
+                "01/01/2024"
         );
 
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
@@ -125,7 +127,8 @@ class TransactionServiceTest {
                 "PETR4",
                 TransactionType.BUY,
                 BigDecimal.valueOf(5),
-                BigDecimal.valueOf(50)
+                BigDecimal.valueOf(50),
+                "01/01/2024"
         );
 
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
@@ -148,7 +151,8 @@ class TransactionServiceTest {
                 "PETR4",
                 TransactionType.BUY,
                 BigDecimal.ONE,
-                BigDecimal.TEN
+                BigDecimal.TEN,
+                "01/01/2024"
         );
 
         when(walletRepository.findById(99L)).thenReturn(Optional.empty());
@@ -166,7 +170,8 @@ class TransactionServiceTest {
                 "PETR4",
                 TransactionType.SELL,
                 BigDecimal.valueOf(5),
-                BigDecimal.valueOf(100)
+                BigDecimal.valueOf(100),
+                "01/01/2024"
         );
 
         var position = AssetPosition.builder()

@@ -31,6 +31,9 @@ public class Transaction {
 
     private BigDecimal quantity;
     private BigDecimal price;
+
     private LocalDate date;
+
+    private LocalDate dataTransaction;
 
 }
