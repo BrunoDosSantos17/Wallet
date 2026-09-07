@@ -66,7 +66,8 @@ public class TransactionService {
                 .type(request.type())
                 .quantity(request.quantity())
                 .price(request.price())
-                .date(transactionDate)
+                .date(LocalDate.now())
+                .dataTransaction(transactionDate)
                 .build());
     }
 

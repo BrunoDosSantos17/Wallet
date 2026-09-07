@@ -32,7 +32,8 @@ public class Transaction {
     private BigDecimal quantity;
     private BigDecimal price;
 
-    @Column(name = "dataTransaction")
     private LocalDate date;
+
+    private LocalDate dataTransaction;
 
 }
