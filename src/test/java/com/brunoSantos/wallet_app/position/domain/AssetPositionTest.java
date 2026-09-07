@@ -1,5 +1,7 @@
 package com.brunoSantos.wallet_app.position.domain;
 
+import com.brunoSantos.wallet_app.position.exception.InsufficientBalanceException;
+import com.brunoSantos.wallet_app.position.exception.InvalidValueException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
@@ -70,13 +72,14 @@ class AssetPositionTest {
         assertThat(position.getAveragePrice())
                 .isEqualByComparingTo("0");
     }
+
     @Test
     void should_throw_exception_when_selling_more_than_owned() {
         position.buy(BigDecimal.valueOf(5), BigDecimal.valueOf(100));
 
         assertThatThrownBy(() ->
                 position.sell(BigDecimal.valueOf(10))
-        ).isInstanceOf(IllegalArgumentException.class)
+        ).isInstanceOf(InsufficientBalanceException.class)
                 .hasMessageContaining("Cannot sell");
     }
 
@@ -84,7 +87,7 @@ class AssetPositionTest {
     void should_throw_exception_when_buying_negative_quantity() {
         assertThatThrownBy(() ->
                 position.buy(BigDecimal.valueOf(-5), BigDecimal.valueOf(100))
-        ).isInstanceOf(IllegalArgumentException.class);
+        ).isInstanceOf(InvalidValueException.class);
     }
 
     @Test
@@ -93,7 +96,7 @@ class AssetPositionTest {
 
         assertThatThrownBy(() ->
                 position.sell(BigDecimal.valueOf(-1))
-        ).isInstanceOf(IllegalArgumentException.class);
+        ).isInstanceOf(InvalidValueException.class);
     }
 
 
