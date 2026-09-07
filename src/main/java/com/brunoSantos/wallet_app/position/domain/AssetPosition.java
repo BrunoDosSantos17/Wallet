@@ -1,6 +1,8 @@
 package com.brunoSantos.wallet_app.position.domain;
 
 import com.brunoSantos.wallet_app.asset.domain.Asset;
+import com.brunoSantos.wallet_app.position.exception.InsufficientBalanceException;
+import com.brunoSantos.wallet_app.position.exception.InvalidValueException;
 import com.brunoSantos.wallet_app.wallet.domain.Wallet;
 import jakarta.persistence.*;
 import lombok.*;
@@ -55,7 +57,7 @@ public class AssetPosition {
         validatePositive(quantityToSell);
 
         if (quantityToSell.compareTo(this.quantity) > 0) {
-            throw new IllegalArgumentException("Cannot sell more than owned quantity");
+            throw new InsufficientBalanceException("Cannot sell more than owned quantity");
         }
 
         this.quantity = this.quantity.subtract(quantityToSell);
@@ -68,7 +70,7 @@ public class AssetPosition {
 
     private void validatePositive(BigDecimal value) {
         if (value == null || value.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Value must be greater than zero");
+            throw new InvalidValueException("Value must be greater than zero");
         }
     }
 

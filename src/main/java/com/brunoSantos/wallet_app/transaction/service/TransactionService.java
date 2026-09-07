@@ -9,6 +9,7 @@ import com.brunoSantos.wallet_app.transaction.domain.TransactionType;
 import com.brunoSantos.wallet_app.transaction.dto.CreateTransactionRequest;
 import com.brunoSantos.wallet_app.transaction.repository.TransactionRepository;
 import com.brunoSantos.wallet_app.wallet.domain.Wallet;
+import com.brunoSantos.wallet_app.wallet.exception.WalletNotFoundException;
 import com.brunoSantos.wallet_app.wallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,7 +32,7 @@ public class TransactionService {
     public Transaction create(CreateTransactionRequest request) {
 
         var wallet = walletRepository.findById(request.walletId())
-                .orElseThrow(() -> new RuntimeException("Wallet not found"));
+                .orElseThrow(WalletNotFoundException::new);
 
         var asset = assetRepository.findByTicker(request.ticker())
                 .orElse(assetRepository.save(Asset.builder()

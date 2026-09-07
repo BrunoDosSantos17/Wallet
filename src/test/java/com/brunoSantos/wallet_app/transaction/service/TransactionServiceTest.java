@@ -9,6 +9,7 @@ import com.brunoSantos.wallet_app.transaction.domain.TransactionType;
 import com.brunoSantos.wallet_app.transaction.dto.CreateTransactionRequest;
 import com.brunoSantos.wallet_app.transaction.repository.TransactionRepository;
 import com.brunoSantos.wallet_app.wallet.domain.Wallet;
+import com.brunoSantos.wallet_app.wallet.exception.WalletNotFoundException;
 import com.brunoSantos.wallet_app.wallet.repository.WalletRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -154,8 +155,7 @@ class TransactionServiceTest {
 
         assertThatThrownBy(() ->
                 transactionService.create(request)
-        ).isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Wallet not found");
+        ).isInstanceOf(WalletNotFoundException.class);
     }
 
     @Test
