@@ -18,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +29,8 @@ public class TransactionService {
     private final WalletRepository walletRepository;
     private final AssetRepository assetRepository;
     private final AssetPositionRepository positionRepository;
+
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     @Transactional
     public Transaction create(CreateTransactionRequest request) {
@@ -54,14 +58,27 @@ public class TransactionService {
 
         positionRepository.save(position);
 
+        LocalDate transactionDate = parseDate(request.date());
+
         return transactionRepository.save(Transaction.builder()
                 .wallet(wallet)
                 .asset(asset)
                 .type(request.type())
                 .quantity(request.quantity())
                 .price(request.price())
-                .date(LocalDate.now())
+                .date(transactionDate)
                 .build());
+    }
+
+    private LocalDate parseDate(String dateString) {
+        if (dateString == null || dateString.isBlank()) {
+            return LocalDate.now();
+        }
+        try {
+            return LocalDate.parse(dateString, DATE_FORMATTER);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Data inválida. Use o formato dd/MM/yyyy");
+        }
     }
 
     private AssetPosition createEmptyPosition(Wallet wallet, Asset asset) {
