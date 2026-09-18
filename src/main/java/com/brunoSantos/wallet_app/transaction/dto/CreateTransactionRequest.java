@@ -1,5 +1,6 @@
 package com.brunoSantos.wallet_app.transaction.dto;
 
+import com.brunoSantos.wallet_app.asset.domain.AssetType;
 import com.brunoSantos.wallet_app.transaction.domain.TransactionType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
@@ -11,6 +12,9 @@ public record CreateTransactionRequest(
         Long walletId,
         String ticker,
         TransactionType type,
+
+        @NotNull
+        AssetType assetType,
 
         @NotNull
         @DecimalMin("0.0")

@@ -1,6 +1,7 @@
 package com.brunoSantos.wallet_app.transaction.service;
 
 import com.brunoSantos.wallet_app.asset.domain.Asset;
+import com.brunoSantos.wallet_app.asset.domain.AssetType;
 import com.brunoSantos.wallet_app.asset.repository.AssetRepository;
 import com.brunoSantos.wallet_app.position.domain.AssetPosition;
 import com.brunoSantos.wallet_app.position.repository.AssetPositionRepository;
@@ -65,6 +66,7 @@ class TransactionServiceTest {
                 1L,
                 "PETR4",
                 TransactionType.BUY,
+                AssetType.STOCK,
                 BigDecimal.valueOf(10),
                 BigDecimal.valueOf(100),
                 "01/01/2024"
@@ -100,6 +102,7 @@ class TransactionServiceTest {
                 1L,
                 "VALE3",
                 TransactionType.BUY,
+                AssetType.STOCK,
                 BigDecimal.valueOf(5),
                 BigDecimal.valueOf(50),
                 "01/01/2024"
@@ -126,6 +129,7 @@ class TransactionServiceTest {
                 1L,
                 "PETR4",
                 TransactionType.BUY,
+                AssetType.STOCK,
                 BigDecimal.valueOf(5),
                 BigDecimal.valueOf(50),
                 "01/01/2024"
@@ -150,6 +154,7 @@ class TransactionServiceTest {
                 99L,
                 "PETR4",
                 TransactionType.BUY,
+                AssetType.STOCK,
                 BigDecimal.ONE,
                 BigDecimal.TEN,
                 "01/01/2024"
@@ -169,6 +174,7 @@ class TransactionServiceTest {
                 1L,
                 "PETR4",
                 TransactionType.SELL,
+                AssetType.STOCK,
                 BigDecimal.valueOf(5),
                 BigDecimal.valueOf(100),
                 "01/01/2024"

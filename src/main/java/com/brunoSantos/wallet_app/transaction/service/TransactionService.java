@@ -40,8 +40,9 @@ public class TransactionService {
 
         var asset = assetRepository.findByTicker(request.ticker())
                 .orElse(assetRepository.save(Asset.builder()
-                        .name(request.ticker()).
-                        ticker(request.ticker())
+                        .name(request.ticker())
+                        .type(request.assetType())
+                        .ticker(request.ticker())
                         .currentPrice(BigDecimal.ZERO)
                         .lastUpdate(LocalDateTime.now())
                         .build()));
