@@ -49,4 +49,10 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest()
                 .body(new ErrorResponse(ex.getMessage()));
     }
+
+    @ExceptionHandler(ImportException.class)
+    public ResponseEntity<ErrorResponse> handleImportException(ImportException ex) {
+        return ResponseEntity.badRequest()
+                .body(new ErrorResponse(ex.getMessage()));
+    }
 }
