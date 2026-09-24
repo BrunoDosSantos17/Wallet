@@ -11,6 +11,7 @@ public record CreateTransactionRequest(
         Long walletId,
         String ticker,
         TransactionType type,
+        String assetType,
 
         @NotNull
         @DecimalMin("0.0")

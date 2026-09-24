@@ -1,6 +1,7 @@
 package com.brunoSantos.wallet_app.transaction.service;
 
 import com.brunoSantos.wallet_app.asset.domain.Asset;
+import com.brunoSantos.wallet_app.asset.domain.AssetType;
 import com.brunoSantos.wallet_app.asset.repository.AssetRepository;
 import com.brunoSantos.wallet_app.position.domain.AssetPosition;
 import com.brunoSantos.wallet_app.position.repository.AssetPositionRepository;
@@ -40,8 +41,9 @@ public class TransactionService {
 
         var asset = assetRepository.findByTicker(request.ticker())
                 .orElse(assetRepository.save(Asset.builder()
-                        .name(request.ticker()).
-                        ticker(request.ticker())
+                        .name(request.ticker())
+                        .ticker(request.ticker())
+                        .type(mapAssetType(request.assetType()))
                         .currentPrice(BigDecimal.ZERO)
                         .lastUpdate(LocalDateTime.now())
                         .build()));
@@ -92,5 +94,17 @@ public class TransactionService {
                 .build();
     }
 
-
+    private AssetType mapAssetType(String assetType) {
+        if (assetType == null) {
+            return null;
+        }
+        return switch (assetType.toLowerCase()) {
+            case "stock" -> AssetType.STOCK;
+            case "fund", "fii" -> AssetType.FII;
+            case "etf" -> AssetType.ETF;
+            case "bdr" -> AssetType.BDR;
+            case "fixed_income" -> AssetType.FIXED_INCOME;
+            default -> null;
+        };
+    }
 }

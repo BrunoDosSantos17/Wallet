@@ -1,5 +1,7 @@
 package com.brunoSantos.wallet_app.imports.service;
 
+import com.brunoSantos.wallet_app.asset.provider.AssetProvider;
+import com.brunoSantos.wallet_app.asset.provider.AssetTickerResult;
 import com.brunoSantos.wallet_app.imports.dto.ImportErrorDetail;
 import com.brunoSantos.wallet_app.imports.dto.ImportResponse;
 import com.brunoSantos.wallet_app.transaction.domain.TransactionType;
@@ -26,6 +28,7 @@ public class ImportService {
 
     private final WalletRepository walletRepository;
     private final TransactionService transactionService;
+    private final AssetProvider assetProvider;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final int DATA_INDEX = 0;
@@ -94,6 +97,8 @@ public class ImportService {
         validatePositive(quantity, "Quantidade deve ser maior que zero");
         validatePositive(price, "Preço deve ser maior que zero");
 
+        AssetTickerResult tickerResult = assetProvider.validate(ticker);
+
         LocalDate date = parseDate(dateStr, row.getCell(DATA_INDEX));
         TransactionType transactionType = mapTransactionType(typeStr);
 
@@ -101,6 +106,7 @@ public class ImportService {
                 walletId,
                 ticker.toUpperCase(),
                 transactionType,
+                tickerResult.assetType(),
                 quantity,
                 price,
                 date.format(DATE_FORMATTER)

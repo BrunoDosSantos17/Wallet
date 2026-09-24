@@ -55,4 +55,10 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest()
                 .body(new ErrorResponse(ex.getMessage()));
     }
+
+    @ExceptionHandler(TicketNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleTicketNotFound(TicketNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
 }
