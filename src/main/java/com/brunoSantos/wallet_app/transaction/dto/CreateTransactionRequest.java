@@ -12,6 +12,7 @@ public record CreateTransactionRequest(
         String ticker,
         TransactionType type,
         String assetType,
+        BigDecimal lastPrice,
 
         @NotNull
         @DecimalMin("0.0")

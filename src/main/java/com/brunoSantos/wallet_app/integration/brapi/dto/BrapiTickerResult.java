@@ -16,5 +16,6 @@ public record BrapiTickerResult(
         @JsonProperty("currency") String currency,
         @JsonProperty("sector") String sector,
         @JsonProperty("subsector") String subsector,
-        @JsonProperty("isActive") Boolean isActive
+        @JsonProperty("isActive") Boolean isActive,
+        @JsonProperty("quote") BrapiQuote quote
 ) {}

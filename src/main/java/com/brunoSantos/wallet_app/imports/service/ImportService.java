@@ -107,6 +107,7 @@ public class ImportService {
                 ticker.toUpperCase(),
                 transactionType,
                 tickerResult.assetType(),
+                tickerResult.lastPrice(),
                 quantity,
                 price,
                 date.format(DATE_FORMATTER)

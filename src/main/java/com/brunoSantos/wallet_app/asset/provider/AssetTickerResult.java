@@ -1,5 +1,7 @@
 package com.brunoSantos.wallet_app.asset.provider;
 
+import java.math.BigDecimal;
+
 public record AssetTickerResult(
         String requestedSymbol,
         String symbol,
@@ -12,5 +14,6 @@ public record AssetTickerResult(
         String currency,
         String sector,
         String subsector,
-        Boolean isActive
+        Boolean isActive,
+        BigDecimal lastPrice
 ) {}

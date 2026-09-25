@@ -75,7 +75,8 @@ class ImportServiceTest {
                 "BRL",
                 null,
                 null,
-                true
+                true,
+                null
         );
     }
 

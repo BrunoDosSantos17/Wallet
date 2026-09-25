@@ -54,7 +54,8 @@ public class BrapiAssetProvider implements AssetProvider {
                 result.currency(),
                 result.sector(),
                 result.subsector(),
-                result.isActive()
+                result.isActive(),
+                result.quote() != null ? result.quote().lastPrice() : null
         );
     }
 }

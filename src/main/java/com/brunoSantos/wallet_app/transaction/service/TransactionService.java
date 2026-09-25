@@ -44,9 +44,13 @@ public class TransactionService {
                         .name(request.ticker())
                         .ticker(request.ticker())
                         .type(mapAssetType(request.assetType()))
-                        .currentPrice(BigDecimal.ZERO)
+                        .currentPrice(request.lastPrice() != null ? request.lastPrice() : BigDecimal.ZERO)
                         .lastUpdate(LocalDateTime.now())
                         .build()));
+
+        if (request.lastPrice() != null) {
+            asset.updatePrice(request.lastPrice(), LocalDateTime.now());
+        }
 
         var position = positionRepository
                 .findByWalletAndAsset(wallet, asset)
