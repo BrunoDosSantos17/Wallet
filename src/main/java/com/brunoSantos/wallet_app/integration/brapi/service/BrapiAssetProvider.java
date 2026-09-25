@@ -37,8 +37,8 @@ public class BrapiAssetProvider implements AssetProvider {
 
         var result = response.results().getFirst();
 
-        if (!result.requestedSymbol().equalsIgnoreCase(ticker)
-                && !result.symbol().equalsIgnoreCase(ticker)) {
+        if (!result.symbol().equalsIgnoreCase(ticker)
+                && result.isActive()) {
             throw new TicketNotFoundException(404, "Ticker não localizado: " + ticker);
         }
 
