@@ -1,7 +1,7 @@
 package com.brunoSantos.wallet_app.asset.service;
 
 import com.brunoSantos.wallet_app.asset.domain.Asset;
-import com.brunoSantos.wallet_app.asset.provider.AssetPriceProvider;
+import com.brunoSantos.wallet_app.asset.provider.AssetProvider;
 import com.brunoSantos.wallet_app.asset.repository.AssetRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 public class AssetPriceService {
 
     private final AssetRepository assetRepository;
-    private final AssetPriceProvider priceProvider;
+    private final AssetProvider priceProvider;
 
     public Asset updatePrice(String ticker) {
 

@@ -1,7 +1,6 @@
 package com.brunoSantos.wallet_app.transaction.service;
 
 import com.brunoSantos.wallet_app.asset.domain.Asset;
-import com.brunoSantos.wallet_app.asset.domain.AssetType;
 import com.brunoSantos.wallet_app.asset.repository.AssetRepository;
 import com.brunoSantos.wallet_app.position.domain.AssetPosition;
 import com.brunoSantos.wallet_app.position.repository.AssetPositionRepository;
@@ -15,14 +14,16 @@ import com.brunoSantos.wallet_app.wallet.repository.WalletRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 @ActiveProfiles("test")
@@ -66,7 +67,8 @@ class TransactionServiceTest {
                 1L,
                 "PETR4",
                 TransactionType.BUY,
-                AssetType.STOCK,
+                "stock",
+                null,
                 BigDecimal.valueOf(10),
                 BigDecimal.valueOf(100),
                 "01/01/2024"
@@ -102,7 +104,8 @@ class TransactionServiceTest {
                 1L,
                 "VALE3",
                 TransactionType.BUY,
-                AssetType.STOCK,
+                "stock",
+                null,
                 BigDecimal.valueOf(5),
                 BigDecimal.valueOf(50),
                 "01/01/2024"
@@ -129,7 +132,8 @@ class TransactionServiceTest {
                 1L,
                 "PETR4",
                 TransactionType.BUY,
-                AssetType.STOCK,
+                "stock",
+                null,
                 BigDecimal.valueOf(5),
                 BigDecimal.valueOf(50),
                 "01/01/2024"
@@ -154,7 +158,8 @@ class TransactionServiceTest {
                 99L,
                 "PETR4",
                 TransactionType.BUY,
-                AssetType.STOCK,
+                "stock",
+                null,
                 BigDecimal.ONE,
                 BigDecimal.TEN,
                 "01/01/2024"
@@ -174,7 +179,8 @@ class TransactionServiceTest {
                 1L,
                 "PETR4",
                 TransactionType.SELL,
-                AssetType.STOCK,
+                "stock",
+                null,
                 BigDecimal.valueOf(5),
                 BigDecimal.valueOf(100),
                 "01/01/2024"
