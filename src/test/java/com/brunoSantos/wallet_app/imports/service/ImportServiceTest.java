@@ -29,12 +29,19 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.concurrent.Executor;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles("test")
@@ -49,6 +56,9 @@ class ImportServiceTest {
     @Mock
     private AssetProvider assetProvider;
 
+    @Mock
+    private Executor importExecutor;
+
     @InjectMocks
     private ImportService importService;
 
@@ -60,6 +70,10 @@ class ImportServiceTest {
                 .id(1L)
                 .name("Carteira Teste")
                 .build();
+        lenient().doAnswer(invocation -> {
+            ((Runnable) invocation.getArgument(0)).run();
+            return null;
+        }).when(importExecutor).execute(any(Runnable.class));
     }
 
     private AssetTickerResult createTickerResult(String symbol, String assetType, String subType) {
@@ -162,6 +176,39 @@ class ImportServiceTest {
         assertThat(response.totalRows()).isEqualTo(3);
         assertThat(response.successCount()).isEqualTo(3);
         assertThat(response.errorCount()).isEqualTo(0);
+    }
+
+    @Test
+    void should_import_different_tickers_in_parallel() throws IOException {
+        when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
+        CountDownLatch tickerValidations = new CountDownLatch(2);
+        when(assetProvider.validate(anyString())).thenAnswer(invocation -> {
+            String ticker = invocation.getArgument(0);
+            tickerValidations.countDown();
+            if (!tickerValidations.await(5, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Tickers não foram processados em paralelo");
+            }
+            return createTickerResult(ticker, "stock", "stock");
+        });
+
+        String[][] data = {
+                {"Data", "Tipo", "", "", "", "Ticker", "Quantidade", "Preço"},
+                {"01/01/2024", "Compra", "", "", "", "PETR4", "100", "25.50"},
+                {"02/01/2024", "Compra", "", "", "", "VALE3", "50", "70.00"}
+        };
+
+        try (var parallelExecutor = Executors.newFixedThreadPool(2)) {
+            doAnswer(invocation -> {
+                parallelExecutor.execute(invocation.getArgument(0));
+                return null;
+            }).when(importExecutor).execute(any(Runnable.class));
+
+            ImportResponse response = importService.importTransactions(1L, createXlsxFile(data));
+
+            assertThat(response.totalRows()).isEqualTo(2);
+            assertThat(response.successCount()).isEqualTo(2);
+            assertThat(response.errorCount()).isZero();
+        }
     }
 
     @Test

@@ -18,7 +18,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleWalletExists() {
 
         return ResponseEntity.badRequest()
-                .body(new ErrorResponse("Wallet already exists"));
+                .body(new ErrorResponse("Carteira já existe"));
     }
 
 
@@ -26,7 +26,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleWalletNotExists() {
 
         return ResponseEntity.badRequest()
-                .body(new ErrorResponse("Wallet not found"));
+                .body(new ErrorResponse("Carteira não encontrada"));
     }
 
     @ExceptionHandler(TransactionException.class)
