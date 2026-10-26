@@ -6,9 +6,12 @@ import com.brunoSantos.wallet_app.wallet.domain.Wallet;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
+import java.util.List;
 
 public interface AssetPositionRepository extends JpaRepository<AssetPosition, Integer> {
 
     Optional<AssetPosition> findByWalletAndAsset(Wallet wallet, Asset asset);
+
+    List<AssetPosition> findAllByWallet(Wallet wallet);
 
 }
