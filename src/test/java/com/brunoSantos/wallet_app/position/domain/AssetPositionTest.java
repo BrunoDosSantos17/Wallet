@@ -80,7 +80,15 @@ class AssetPositionTest {
         assertThatThrownBy(() ->
                 position.sell(BigDecimal.valueOf(10))
         ).isInstanceOf(InsufficientBalanceException.class)
-                .hasMessageContaining("Cannot sell");
+                .hasMessageContaining("Saldo insuficiente");
+    }
+
+    @Test
+    void should_throw_exception_when_selling_without_position() {
+        assertThatThrownBy(() ->
+                position.sell(BigDecimal.valueOf(1))
+        ).isInstanceOf(InsufficientBalanceException.class)
+                .hasMessageContaining("não possui posição");
     }
 
     @Test

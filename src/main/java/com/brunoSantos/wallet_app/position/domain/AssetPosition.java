@@ -56,8 +56,12 @@ public class AssetPosition {
     public void sell(BigDecimal quantityToSell) {
         validatePositive(quantityToSell);
 
+        if (this.quantity == null || this.quantity.compareTo(BigDecimal.ZERO) == 0) {
+            throw new InsufficientBalanceException("Você não possui posição neste ativo para vender");
+        }
+
         if (quantityToSell.compareTo(this.quantity) > 0) {
-            throw new InsufficientBalanceException("Cannot sell more than owned quantity");
+            throw new InsufficientBalanceException("Saldo insuficiente. Você possui " + this.quantity + " e tentou vender " + quantityToSell);
         }
 
         this.quantity = this.quantity.subtract(quantityToSell);
@@ -70,7 +74,7 @@ public class AssetPosition {
 
     private void validatePositive(BigDecimal value) {
         if (value == null || value.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new InvalidValueException("Value must be greater than zero");
+            throw new InvalidValueException("Valor deve ser maior que zero");
         }
     }
 

@@ -2,8 +2,8 @@ package com.brunoSantos.wallet_app.wallet.controller;
 
 import com.brunoSantos.wallet_app.wallet.dto.CreateWalletRequest;
 import com.brunoSantos.wallet_app.wallet.dto.UpdateWalletRequest;
+import com.brunoSantos.wallet_app.wallet.dto.WalletBasicInfoResponse;
 import com.brunoSantos.wallet_app.wallet.dto.WalletResponse;
-import com.brunoSantos.wallet_app.wallet.exception.WalletExistsException;
 import com.brunoSantos.wallet_app.wallet.service.WalletService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +43,16 @@ public class WalletController {
                 .stream()
                 .map(WalletResponse::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    @GetMapping("/infoBasica/{walletId}")
+    public WalletBasicInfoResponse infoBasica(@PathVariable Long walletId) {
+        return walletService.infoBasica(walletId);
+    }
+
+    @GetMapping("/infoBasica/{walletId}/atualizar")
+    public WalletBasicInfoResponse atualizarInfoBasica(@PathVariable Long walletId) {
+        return walletService.atualizarInfoBasica(walletId);
     }
 
     @PutMapping

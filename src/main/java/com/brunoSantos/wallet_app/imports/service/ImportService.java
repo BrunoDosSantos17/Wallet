@@ -19,8 +19,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +30,7 @@ public class ImportService {
     private final WalletRepository walletRepository;
     private final TransactionService transactionService;
     private final AssetProvider assetProvider;
+    private final Executor importExecutor;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final int DATA_INDEX = 0;
@@ -42,8 +44,8 @@ public class ImportService {
                 .orElseThrow(WalletNotFoundException::new);
 
         List<ImportErrorDetail> errors = new ArrayList<>();
+        Map<String, List<ImportRow>> rowsByTicker = new LinkedHashMap<>();
         int totalRows = 0;
-        int successCount = 0;
 
         try (Workbook workbook = WorkbookFactory.create(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
@@ -59,16 +61,27 @@ public class ImportService {
                 totalRows++;
 
                 try {
-                    validateAndImport(row, walletId);
-                    successCount++;
+                    ImportRow importRow = extractRow(rowIndex + 1, row);
+                    String tickerKey = importRow.ticker().trim().toUpperCase(Locale.ROOT);
+                    rowsByTicker.computeIfAbsent(tickerKey, ignored -> new ArrayList<>()).add(importRow);
                 } catch (Exception e) {
-                    // +1 porque humanos costumam contar linhas a partir de 1,
-                    // e já pulamos o cabeçalho
                     errors.add(new ImportErrorDetail(rowIndex + 1, e.getMessage()));
                 }
             }
         }
 
+        List<CompletableFuture<GroupResult>> tasks = rowsByTicker.values().stream()
+                .map(rows -> CompletableFuture.supplyAsync(() -> importTickerRows(rows, walletId), importExecutor))
+                .toList();
+
+        int successCount = 0;
+        for (CompletableFuture<GroupResult> task : tasks) {
+            GroupResult result = task.join();
+            successCount += result.successCount();
+            errors.addAll(result.errors());
+        }
+
+        errors.sort(Comparator.comparingInt(ImportErrorDetail::rowNumber));
         return new ImportResponse(totalRows, successCount, errors.size(), errors);
     }
 
@@ -86,12 +99,38 @@ public class ImportService {
         return true;
     }
 
-    private void validateAndImport(Row row, Long walletId) {
+    private ImportRow extractRow(int rowNumber, Row row) {
         String dateStr = getCellStringValue(row.getCell(DATA_INDEX));
         String ticker = getCellStringValue(row.getCell(TICKER_INDEX));
         BigDecimal quantity = getCellNumericValue(row.getCell(QUANTITY_INDEX));
         BigDecimal price = getCellNumericValue(row.getCell(PRICE_INDEX));
         String typeStr = getCellStringValue(row.getCell(TYPE_INDEX));
+
+        return new ImportRow(rowNumber, dateStr, ticker, quantity, price, typeStr);
+    }
+
+    private GroupResult importTickerRows(List<ImportRow> rows, Long walletId) {
+        int successCount = 0;
+        List<ImportErrorDetail> errors = new ArrayList<>();
+
+        for (ImportRow row : rows) {
+            try {
+                validateAndImport(row, walletId);
+                successCount++;
+            } catch (Exception e) {
+                errors.add(new ImportErrorDetail(row.rowNumber(), e.getMessage()));
+            }
+        }
+
+        return new GroupResult(successCount, errors);
+    }
+
+    private void validateAndImport(ImportRow row, Long walletId) {
+        String dateStr = row.date();
+        String ticker = row.ticker();
+        BigDecimal quantity = row.quantity();
+        BigDecimal price = row.price();
+        String typeStr = row.type();
 
         validateNotEmpty(ticker, "Ticker não pode ser vazio");
         validatePositive(quantity, "Quantidade deve ser maior que zero");
@@ -99,7 +138,7 @@ public class ImportService {
 
         AssetTickerResult tickerResult = assetProvider.validate(ticker);
 
-        LocalDate date = parseDate(dateStr, row.getCell(DATA_INDEX));
+        LocalDate date = parseDate(dateStr, null);
         TransactionType transactionType = mapTransactionType(typeStr);
 
         CreateTransactionRequest request = new CreateTransactionRequest(
@@ -115,6 +154,11 @@ public class ImportService {
 
         transactionService.create(request);
     }
+
+    private record ImportRow(int rowNumber, String date, String ticker, BigDecimal quantity,
+                             BigDecimal price, String type) {}
+
+    private record GroupResult(int successCount, List<ImportErrorDetail> errors) {}
 
     public TransactionType mapTransactionType(String tipo) {
         if ("Compra".equalsIgnoreCase(tipo)) {

@@ -14,7 +14,8 @@ public record AssetPositionResponse(
 ) {
     public static AssetPositionResponse fromEntity(AssetPosition position) {
         BigDecimal totalCost = position.getAveragePrice()
-                .multiply(position.getQuantity());
+                .multiply(position.getQuantity())
+                .setScale(2, BigDecimal.ROUND_HALF_UP);
 
         return new AssetPositionResponse(
                 position.getAsset().getTicker(),
