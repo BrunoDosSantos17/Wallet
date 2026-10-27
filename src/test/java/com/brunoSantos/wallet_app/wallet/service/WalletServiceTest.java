@@ -4,6 +4,7 @@ import com.brunoSantos.wallet_app.asset.domain.Asset;
 import com.brunoSantos.wallet_app.asset.domain.AssetType;
 import com.brunoSantos.wallet_app.position.domain.AssetPosition;
 import com.brunoSantos.wallet_app.position.repository.AssetPositionRepository;
+import com.brunoSantos.wallet_app.asset.service.AssetPriceService;
 import com.brunoSantos.wallet_app.wallet.domain.Wallet;
 import com.brunoSantos.wallet_app.wallet.exception.WalletNotFoundException;
 import com.brunoSantos.wallet_app.wallet.repository.WalletRepository;
@@ -20,6 +21,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class WalletServiceTest {
@@ -29,6 +32,9 @@ class WalletServiceTest {
 
     @Mock
     private AssetPositionRepository assetPositionRepository;
+
+    @Mock
+    private AssetPriceService assetPriceService;
 
     @InjectMocks
     private WalletService walletService;
@@ -94,5 +100,27 @@ class WalletServiceTest {
 
         assertThatThrownBy(() -> walletService.infoBasica(99L))
                 .isInstanceOf(WalletNotFoundException.class);
+    }
+
+    @Test
+    void should_refresh_wallet_assets_once_per_ticker_before_returning_basic_info() {
+        Wallet wallet = Wallet.builder().id(1L).name("Principal").build();
+        Asset petr4 = Asset.builder().ticker("PETR4").name("Petrobras").build();
+        AssetPosition firstPosition = AssetPosition.builder()
+                .asset(petr4)
+                .quantity(new BigDecimal("10"))
+                .build();
+        AssetPosition secondPosition = AssetPosition.builder()
+                .asset(petr4)
+                .quantity(new BigDecimal("5"))
+                .build();
+        when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
+        when(assetPositionRepository.findAllByWallet(wallet))
+                .thenReturn(List.of(firstPosition, secondPosition));
+
+        walletService.atualizarInfoBasica(1L);
+
+        verify(assetPriceService, times(1)).updatePrice("PETR4");
+        verify(assetPositionRepository, times(2)).findAllByWallet(wallet);
     }
 }

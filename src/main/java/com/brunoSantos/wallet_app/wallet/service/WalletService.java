@@ -8,6 +8,7 @@ import com.brunoSantos.wallet_app.wallet.exception.WalletNotFoundException;
 import com.brunoSantos.wallet_app.wallet.repository.WalletRepository;
 import com.brunoSantos.wallet_app.position.domain.AssetPosition;
 import com.brunoSantos.wallet_app.position.repository.AssetPositionRepository;
+import com.brunoSantos.wallet_app.asset.service.AssetPriceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,7 +19,8 @@ import java.text.DecimalFormatSymbols;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Comparator;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -27,6 +29,7 @@ public class WalletService {
 
     private final WalletRepository walletRepository;
     private final AssetPositionRepository assetPositionRepository;
+    private final AssetPriceService assetPriceService;
 
     private static final BigDecimal ZERO_MONEY = new BigDecimal("0.00");
     private static final BigDecimal HUNDRED = new BigDecimal("100");
@@ -76,6 +79,20 @@ public class WalletService {
                 positions.size(),
                 distribution
         );
+    }
+
+    public WalletBasicInfoResponse atualizarInfoBasica(Long walletId) {
+        Wallet wallet = findById(walletId);
+        Set<String> tickers = new LinkedHashSet<>();
+
+        assetPositionRepository.findAllByWallet(wallet).stream()
+                .filter(position -> position.getQuantity() != null
+                        && position.getQuantity().compareTo(BigDecimal.ZERO) > 0)
+                .map(position -> position.getAsset().getTicker())
+                .forEach(tickers::add);
+
+        tickers.forEach(assetPriceService::updatePrice);
+        return infoBasica(walletId);
     }
 
     private WalletBasicInfoResponse.AssetDistribution toDistribution(
