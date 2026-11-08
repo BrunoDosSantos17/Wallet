@@ -1,16 +1,33 @@
-version: '3.7'
-
 services:
   postgres:
-    image: postgres:15
+    image: postgres:17
+    container_name: postgres-wallet
+    restart: unless-stopped
+
     ports:
-      - '5433:5432'
+      - "127.0.0.1:5433:5432"
+
     environment:
-      - POSTGRES_USER=proposaldb
-      - POSTGRES_PASSWORD=docker
-      - POSTGRES_DB=wallet
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
+      POSTGRES_DB: ${POSTGRES_DB}
+
     volumes:
       - proposaldb_pg_data:/var/lib/postgresql/data
 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    networks:
+      - dev-network
+
 volumes:
   proposaldb_pg_data:
+
+networks:
+  dev-network:
+    external: true
