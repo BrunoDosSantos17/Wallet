@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 import java.util.List;
 
-public interface AssetPositionRepository extends JpaRepository<AssetPosition, Integer> {
+public interface AssetPositionRepository extends JpaRepository<AssetPosition, Long> {
 
     Optional<AssetPosition> findByWalletAndAsset(Wallet wallet, Asset asset);
 

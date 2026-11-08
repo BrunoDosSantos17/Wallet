@@ -72,12 +72,19 @@ public class WalletController {
                 .collect(Collectors.toList());
     }
 
-    @GetMapping("/all")
+    @GetMapping("/all/details")
     @Operation(summary = "Listar todas as carteiras")
     public List<WalletResponse> findAllWallets() {
         return walletService.findAll()
                 .stream()
                 .map(WalletResponse::fromEntity)
+                .toList();
+    }
+
+    @GetMapping("/all")
+    public List<String> findAllNames() {
+        return walletService.findAll().stream()
+                .map(wallet -> wallet.getName())
                 .toList();
     }
 

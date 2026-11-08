@@ -1,12 +1,14 @@
 package com.brunoSantos.wallet_app.imports.service;
 
-import com.brunoSantos.wallet_app.asset.provider.AssetProvider;
-import com.brunoSantos.wallet_app.asset.provider.AssetTickerResult;
 import com.brunoSantos.wallet_app.imports.dto.ImportErrorDetail;
 import com.brunoSantos.wallet_app.imports.dto.ImportResponse;
 import com.brunoSantos.wallet_app.transaction.domain.TransactionType;
 import com.brunoSantos.wallet_app.transaction.dto.CreateTransactionRequest;
 import com.brunoSantos.wallet_app.transaction.service.TransactionService;
+import com.brunoSantos.wallet_app.transaction.exception.DuplicateImportException;
+import com.brunoSantos.wallet_app.shared.financial.FinancialPrecision;
+import com.brunoSantos.wallet_app.asset.provider.AssetProvider;
+import com.brunoSantos.wallet_app.asset.provider.AssetTickerResult;
 import com.brunoSantos.wallet_app.wallet.exception.WalletNotFoundException;
 import com.brunoSantos.wallet_app.wallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
@@ -136,23 +138,43 @@ public class ImportService {
         validatePositive(quantity, "Quantidade deve ser maior que zero");
         validatePositive(price, "Preço deve ser maior que zero");
 
-        AssetTickerResult tickerResult = assetProvider.validate(ticker);
-
         LocalDate date = parseDate(dateStr, null);
         TransactionType transactionType = mapTransactionType(typeStr);
 
+        // Reject inputs that cannot produce a valid persisted identity before retrying.
+        BigDecimal normalizedQuantity = FinancialPrecision.normalizeQuantity(quantity);
+        BigDecimal normalizedPrice = FinancialPrecision.normalizePrice(price);
+        validatePositive(normalizedQuantity, "Quantidade deve permanecer maior que zero após arredondamento");
+        validatePositive(normalizedPrice, "Preço deve permanecer maior que zero após arredondamento");
+
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                importAttempt(walletId, ticker, quantity, price, date, transactionType);
+                return;
+            } catch (DuplicateImportException ex) {
+                throw ex;
+            } catch (Exception ex) {
+                if (attempt == 2) throw ex;
+            }
+        }
+    }
+
+    private void importAttempt(Long walletId, String ticker, BigDecimal quantity, BigDecimal price,
+                               LocalDate date, TransactionType transactionType) {
+        AssetTickerResult tickerResult = assetProvider.validate(ticker);
+
         CreateTransactionRequest request = new CreateTransactionRequest(
                 walletId,
-                ticker.toUpperCase(),
+                ticker.trim().toUpperCase(Locale.ROOT),
                 transactionType,
                 tickerResult.assetType(),
-                tickerResult.lastPrice(),
+                null,
                 quantity,
                 price,
                 date.format(DATE_FORMATTER)
         );
 
-        transactionService.create(request);
+        transactionService.createImported(request, tickerResult);
     }
 
     private record ImportRow(int rowNumber, String date, String ticker, BigDecimal quantity,

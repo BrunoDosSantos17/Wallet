@@ -3,6 +3,7 @@ package com.brunoSantos.wallet_app.position.dto;
 import com.brunoSantos.wallet_app.asset.domain.AssetType;
 import com.brunoSantos.wallet_app.position.domain.AssetPosition;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 public record AssetPositionResponse(
         String ticker,
@@ -15,7 +16,7 @@ public record AssetPositionResponse(
     public static AssetPositionResponse fromEntity(AssetPosition position) {
         BigDecimal totalCost = position.getAveragePrice()
                 .multiply(position.getQuantity())
-                .setScale(2, BigDecimal.ROUND_HALF_UP);
+                .setScale(2, RoundingMode.HALF_UP);
 
         return new AssetPositionResponse(
                 position.getAsset().getTicker(),
