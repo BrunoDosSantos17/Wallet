@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-public interface AssetRepository extends JpaRepository<Asset, Integer> {
+public interface AssetRepository extends JpaRepository<Asset, String> {
 
     Optional<Asset> findByTicker(String ticker);
 }

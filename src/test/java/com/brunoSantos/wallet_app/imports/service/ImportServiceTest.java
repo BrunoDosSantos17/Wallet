@@ -42,6 +42,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles("test")
@@ -115,11 +117,48 @@ class ImportServiceTest {
     }
 
     @Test
+    void retries_once_per_upload_and_resets_on_resubmission() throws IOException {
+        when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
+        when(assetProvider.validate("PETR4")).thenReturn(createTickerResult("PETR4", "stock", "stock"));
+        when(transactionService.createImported(any(CreateTransactionRequest.class), any(AssetTickerResult.class)))
+                .thenThrow(new IllegalStateException("falha"))
+                .thenThrow(new IllegalStateException("falha"))
+                .thenThrow(new IllegalStateException("falha temporária"))
+                .thenReturn(Transaction.builder().build());
+        var file = createXlsxFile(new String[][] {
+                {"Data", "Tipo", "", "", "", "Ticker", "Quantidade", "Preço"},
+                {"01/01/2024", "Compra", "", "", "", "PETR4", "1", "10"}
+        });
+        var first = importService.importTransactions(1L, file);
+        assertThat(first.successCount()).isZero();
+        assertThat(first.errorCount()).isEqualTo(1);
+        var second = importService.importTransactions(1L, file);
+        assertThat(second.successCount()).isEqualTo(1);
+        assertThat(second.errorCount()).isZero();
+        verify(transactionService, times(4)).createImported(any(CreateTransactionRequest.class), any(AssetTickerResult.class));
+    }
+
+    @Test
+    void duplicate_is_not_retried() throws IOException {
+        when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
+        when(assetProvider.validate("PETR4")).thenReturn(createTickerResult("PETR4", "stock", "stock"));
+        when(transactionService.createImported(any(CreateTransactionRequest.class), any(AssetTickerResult.class)))
+                .thenThrow(new com.brunoSantos.wallet_app.transaction.exception.DuplicateImportException());
+        var file = createXlsxFile(new String[][] {
+                {"Data", "Tipo", "", "", "", "Ticker", "Quantidade", "Preço"},
+                {"01/01/2024", "Compra", "", "", "", "PETR4", "1", "10"}
+        });
+        var result = importService.importTransactions(1L, file);
+        assertThat(result.errorCount()).isEqualTo(1);
+        verify(transactionService, times(1)).createImported(any(CreateTransactionRequest.class), any(AssetTickerResult.class));
+    }
+
+    @Test
     void should_import_single_buy_transaction() throws IOException {
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
         when(assetProvider.validate(eq("PETR4")))
                 .thenReturn(createTickerResult("PETR4", "stock", "stock"));
-        when(transactionService.create(any(CreateTransactionRequest.class)))
+        when(transactionService.createImported(any(CreateTransactionRequest.class), any(AssetTickerResult.class)))
                 .thenReturn(Transaction.builder()
                         .id(1L)
                         .wallet(wallet)
@@ -151,7 +190,7 @@ class ImportServiceTest {
                 .thenReturn(createTickerResult("PETR4", "stock", "stock"));
         when(assetProvider.validate(eq("VALE3")))
                 .thenReturn(createTickerResult("VALE3", "stock", "stock"));
-        when(transactionService.create(any(CreateTransactionRequest.class)))
+        when(transactionService.createImported(any(CreateTransactionRequest.class), any(AssetTickerResult.class)))
                 .thenReturn(Transaction.builder()
                         .id(1L)
                         .wallet(wallet)
@@ -216,7 +255,7 @@ class ImportServiceTest {
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
         when(assetProvider.validate(eq("PETR4")))
                 .thenReturn(createTickerResult("PETR4", "stock", "stock"));
-        when(transactionService.create(any(CreateTransactionRequest.class)))
+        when(transactionService.createImported(any(CreateTransactionRequest.class), any(AssetTickerResult.class)))
                 .thenAnswer(invocation -> {
                     CreateTransactionRequest request = invocation.getArgument(0);
                     assertThat(request.type()).isEqualTo(TransactionType.BUY);
@@ -248,7 +287,7 @@ class ImportServiceTest {
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
         when(assetProvider.validate(eq("PETR4")))
                 .thenReturn(createTickerResult("PETR4", "stock", "stock"));
-        when(transactionService.create(any(CreateTransactionRequest.class)))
+        when(transactionService.createImported(any(CreateTransactionRequest.class), any(AssetTickerResult.class)))
                 .thenAnswer(invocation -> {
                     CreateTransactionRequest request = invocation.getArgument(0);
                     assertThat(request.type()).isEqualTo(TransactionType.SELL);
@@ -280,7 +319,7 @@ class ImportServiceTest {
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
         when(assetProvider.validate(eq("petr4")))
                 .thenReturn(createTickerResult("PETR4", "stock", "stock"));
-        when(transactionService.create(any(CreateTransactionRequest.class)))
+        when(transactionService.createImported(any(CreateTransactionRequest.class), any(AssetTickerResult.class)))
                 .thenAnswer(invocation -> {
                     CreateTransactionRequest request = invocation.getArgument(0);
                     assertThat(request.ticker()).isEqualTo("PETR4");
@@ -347,8 +386,6 @@ class ImportServiceTest {
     @Test
     void should_skip_rows_with_invalid_date() throws IOException {
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
-        when(assetProvider.validate(eq("PETR4")))
-                .thenReturn(createTickerResult("PETR4", "stock", "stock"));
 
         String[][] data = {
                 {"Data", "Tipo", "", "", "", "Ticker", "Quantidade", "Preço"},
@@ -404,7 +441,7 @@ class ImportServiceTest {
                 .thenReturn(createTickerResult("VALE3", "stock", "stock"));
         when(assetProvider.validate(eq("INVALID")))
                 .thenThrow(new TicketNotFoundException(404, "Ticker não localizado: INVALID"));
-        when(transactionService.create(any(CreateTransactionRequest.class)))
+        when(transactionService.createImported(any(CreateTransactionRequest.class), any(AssetTickerResult.class)))
                 .thenReturn(Transaction.builder()
                         .id(1L)
                         .wallet(wallet)
@@ -441,7 +478,7 @@ class ImportServiceTest {
                 .thenReturn(createTickerResult("VISC11", "fund", "fii"));
         when(assetProvider.validate(eq("MXRF11")))
                 .thenReturn(createTickerResult("MXRF11", "fund", "fii"));
-        when(transactionService.create(any(CreateTransactionRequest.class)))
+        when(transactionService.createImported(any(CreateTransactionRequest.class), any(AssetTickerResult.class)))
                 .thenReturn(Transaction.builder()
                         .id(1L)
                         .wallet(wallet)
@@ -475,7 +512,7 @@ class ImportServiceTest {
                 .thenReturn(createTickerResult("BBAS3F", "stock", "stock"));
         when(assetProvider.validate(eq("ABEV3F")))
                 .thenReturn(createTickerResult("ABEV3F", "stock", "stock"));
-        when(transactionService.create(any(CreateTransactionRequest.class)))
+        when(transactionService.createImported(any(CreateTransactionRequest.class), any(AssetTickerResult.class)))
                 .thenReturn(Transaction.builder()
                         .id(1L)
                         .wallet(wallet)
@@ -506,7 +543,7 @@ class ImportServiceTest {
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
         when(assetProvider.validate(eq("PETR4")))
                 .thenReturn(createTickerResult("PETR4", "stock", "stock"));
-        when(transactionService.create(any(CreateTransactionRequest.class)))
+        when(transactionService.createImported(any(CreateTransactionRequest.class), any(AssetTickerResult.class)))
                 .thenAnswer(invocation -> {
                     CreateTransactionRequest request = invocation.getArgument(0);
                     assertThat(request.date()).isEqualTo("15/03/2024");
