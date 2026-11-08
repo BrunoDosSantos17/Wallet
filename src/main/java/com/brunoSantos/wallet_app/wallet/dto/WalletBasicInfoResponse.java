@@ -7,12 +7,14 @@ public record WalletBasicInfoResponse(
         BigDecimal patrimonioTotal,
         BigDecimal rendaMensalEst,
         Integer ativosCarteira,
-        List<AssetDistribution> distribuicao
+        List<AssetDistribution> distribuicao,
+        List<String> avisos
 ) {
     public record AssetDistribution(
             String nomeAtivo,
             String percentual,
             String valor,
-            Integer quantidade
+            String quantidade,
+            Integer quantidadeAtivos
     ) {}
 }

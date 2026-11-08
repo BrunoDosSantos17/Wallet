@@ -12,6 +12,7 @@ The API documentation is available through **Scalar** and is generated from the 
 - Springdoc OpenAPI
 - Scalar API Reference
 - PostgreSQL
+- Flyway (schema migrations)
 - H2 (tests)
 - Lombok
 - Maven
@@ -45,6 +46,67 @@ BRAPI_TOKEN=your_token_here
 ```
 
 The API will be available at `http://localhost:8080`.
+
+### Database migrations
+
+Flyway creates and upgrades the PostgreSQL schema on application startup. The
+initial `src/main/resources/db/migration/V1__create_initial_schema.sql` is a
+complete schema for a **new, empty database**; Hibernate only validates it.
+Flyway records applied versions and checksums in `flyway_schema_history`.
+
+Existing non-empty databases without Flyway history are not automatically
+baselined or recreated. This version does not migrate their data. To start over,
+explicitly select and confirm the database/schema to replace, stop writers, and
+recreate only that target before starting the application. This destroys its
+contents. Never point tests or destructive commands at a database containing
+data you want to keep. Legacy manual scripts are preserved in
+`src/main/resources/db/legacy-migration` and are not run by Flyway.
+
+For later schema changes, add a new `V2__description.sql`, `V3__description.sql`,
+etc. under `db/migration`; never edit an already applied migration. Review and
+test it against an isolated PostgreSQL database before deployment. Flyway clean
+is disabled. Do not use `repair` to hide checksum or migration failures; first
+investigate the cause and determine a reviewed recovery procedure.
+
+PostgreSQL integration tests require an isolated, disposable database supplied by
+`C3_TEST_DB_URL`, with `C3_TEST_DB_USER` and `DB_PASSWORD`. The PostgreSQL tests
+run migrations and validate the mappings; the H2 test profile uses Hibernate
+separately and does not validate PostgreSQL migrations.
+
+### Estimated income synchronization
+
+`POST /dividendos/posicoes/{id}/sincronizar?inicio=YYYY-MM-DD` synchronizes
+Brazilian stock dividends/JCP or FII income through today. It uses Brapi's
+unadjusted per-unit value and transaction quantities through the record date.
+The Brapi plan must allow the relevant endpoints and unadjusted values. Values
+are **gross estimates, not confirmed cash credits**; missing historical trades,
+corporate actions and JCP taxes can make them inaccurate. FII amortizations are
+not income and are excluded. `rendaMensalEst` sums stored calculated values whose
+payment dates fall in the current month in São Paulo, including closed positions.
+It returns zero when no records are available, even if synchronization failed or
+never ran; it does not refresh providers on read. Existing US stock positions
+can synchronize only the latest payment returned by the free
+[SmarterDividends API](https://smarterdividends.com/dividend-api): earlier payments
+in the same month may be missing. The source's ex-dividend calendar provides the
+last eligible purchase date. US amounts remain in USD in storage and are converted
+on summary read using the current USD/BRL bid. If unavailable, the USD portion is
+zero and `avisos` contains `ConversaoMoedaIndisponivel`; BRL amounts are retained.
+For a US stock operation, send `assetType: "stock_abroad"` to `POST /transactions`;
+the ticker is checked through SmarterDividends and transaction prices are in USD.
+The import spreadsheet still uses Brapi and does not support this explicit routing.
+US stock market prices are not refreshed or converted for the portfolio valuation:
+new stocks have no available BRL quote and therefore contribute zero under the
+current missing-price policy. This does not affect USD dividend conversion.
+
+In the wallet summary, distribution `quantidade` is a decimal string preserving
+fractional units, while `quantidadeAtivos` counts nonzero positions in the class.
+Missing market prices are treated as zero without a separate indicator.
+
+The source has no stable event ID. Events with the same type and record date for
+one position, or a change in a previously stored event or its historical quantity,
+cause a conflict requiring manual review; the synchronization is transactional.
+The chosen start date filters by payment date, not record date. Incomplete or
+unavailable Brapi data fails rather than being represented as zero.
 
 ## 📚 API Documentation
 

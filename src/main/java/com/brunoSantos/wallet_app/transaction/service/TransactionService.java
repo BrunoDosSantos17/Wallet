@@ -4,6 +4,7 @@ import com.brunoSantos.wallet_app.asset.domain.Asset;
 import com.brunoSantos.wallet_app.asset.domain.AssetType;
 import com.brunoSantos.wallet_app.asset.provider.AssetProvider;
 import com.brunoSantos.wallet_app.asset.repository.AssetRepository;
+import com.brunoSantos.wallet_app.integration.smarterdividends.service.SmarterAssetProvider;
 import com.brunoSantos.wallet_app.position.domain.AssetPosition;
 import com.brunoSantos.wallet_app.position.repository.AssetPositionRepository;
 import com.brunoSantos.wallet_app.transaction.domain.Transaction;
@@ -37,6 +38,7 @@ public class TransactionService {
     private final AssetRepository assetRepository;
     private final AssetPositionRepository positionRepository;
     private final AssetProvider assetProvider;
+    private final SmarterAssetProvider smarterAssetProvider;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/uuuu")
             .withResolverStyle(ResolverStyle.STRICT);
@@ -45,7 +47,8 @@ public class TransactionService {
     public Transaction create(CreateTransactionRequest request) {
         validateRequest(request);
         String ticker = request.ticker().trim().toUpperCase(Locale.ROOT);
-        return createValidated(request, ticker, assetProvider.validate(ticker), false);
+        var provider = "stock_abroad".equalsIgnoreCase(request.assetType()) ? smarterAssetProvider : assetProvider;
+        return createValidated(request, ticker, provider.validate(ticker), false);
     }
 
     @Transactional
@@ -129,6 +132,10 @@ public class TransactionService {
                         .lastUpdate(validatedPrice != null ? LocalDateTime.now() : null)
                         .build()));
 
+        if (asset.getType() != null && mapAssetType(tickerInfo.assetType()) != null
+                && asset.getType() != mapAssetType(tickerInfo.assetType()))
+            throw new TransactionException("Ticker já cadastrado com outro tipo de ativo");
+
         if (validatedPrice != null) {
             asset.updatePrice(validatedPrice, LocalDateTime.now());
         }
@@ -202,6 +209,7 @@ public class TransactionService {
         }
         return switch (assetType.trim().toLowerCase(Locale.ROOT)) {
             case "stock" -> AssetType.STOCK;
+            case "stock_abroad" -> AssetType.STOCK_ABROAD;
             case "fund", "fii" -> AssetType.FII;
             case "etf" -> AssetType.ETF;
             case "bdr" -> AssetType.BDR;

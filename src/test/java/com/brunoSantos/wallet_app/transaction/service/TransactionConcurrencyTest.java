@@ -52,7 +52,7 @@ class TransactionConcurrencyTest {
         registry.add("spring.datasource.username", () -> System.getenv().getOrDefault("C3_TEST_DB_USER", "proposaldb"));
         registry.add("spring.datasource.password", () -> System.getenv("DB_PASSWORD"));
         registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "validate");
         registry.add("spring.jpa.show-sql", () -> "false");
         registry.add("brapi.token", () -> "test-token-not-used");
     }
