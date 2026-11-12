@@ -13,6 +13,7 @@ import com.brunoSantos.wallet_app.dividend.repository.DividendoRecebidoRepositor
 import com.brunoSantos.wallet_app.integration.awesomeapi.client.AwesomeApiClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -154,8 +155,11 @@ public class WalletService {
         return currentPrice.multiply(position.getQuantity());
     }
 
+    @Transactional
     public void delete(Long id) {
-        walletRepository.delete(findById(id));
+        walletRepository.findByIdForUpdate(id).orElseThrow(WalletNotFoundException::new);
+        dividendRepository.deleteByWalletId(id);
+        if (walletRepository.deleteWalletAndDependents(id) == 0) throw new WalletNotFoundException();
     }
 
     public Wallet update(UpdateWalletRequest updateWallet) {

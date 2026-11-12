@@ -3,6 +3,7 @@ package com.brunoSantos.wallet_app.dividend.repository;
 import com.brunoSantos.wallet_app.dividend.domain.DividendoRecebido;
 import com.brunoSantos.wallet_app.dividend.domain.TipoProvento;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -12,6 +13,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface DividendoRecebidoRepository extends JpaRepository<DividendoRecebido, Long> {
+    @Modifying(flushAutomatically = true)
+    @Query("delete from DividendoRecebido d where d.assetPosition.wallet.id = :walletId")
+    int deleteByWalletId(@Param("walletId") Long walletId);
     List<DividendoRecebido> findByAssetPositionIdAndTipoProvento(Long positionId, TipoProvento tipoProvento);
 
     Optional<DividendoRecebido> findByAssetPositionIdAndIdentificadorOrigem(Long positionId, String identificadorOrigem);

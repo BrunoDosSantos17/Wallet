@@ -10,6 +10,24 @@ jobs:
   test:
     name: Build and Test
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: wallet_test
+          POSTGRES_USER: wallet_test
+          POSTGRES_PASSWORD: test_only_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U wallet_test -d wallet_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      C3_TEST_DB_URL: jdbc:postgresql://localhost:5432/wallet_test
+      C3_TEST_DB_USER: wallet_test
+      DB_PASSWORD: test_only_password
 
     steps:
       - name: Checkout do código
@@ -22,8 +40,22 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Rodar testes com Maven
-        run: mvn -B test
+      - name: Testes PostgreSQL obrigatórios da T1
+        run: |
+          mvn -B -Dtest=FinancialPrecisionTest,PostgresPrecisionLimitsTest,TransactionConcurrencyTest,WalletLifecycleTest,FlywaySchemaPostgresTest test
+          for name in \
+            com.brunoSantos.wallet_app.position.repository.FinancialPrecisionTest \
+            com.brunoSantos.wallet_app.position.repository.PostgresPrecisionLimitsTest \
+            com.brunoSantos.wallet_app.transaction.service.TransactionConcurrencyTest \
+            com.brunoSantos.wallet_app.wallet.repository.WalletLifecycleTest \
+            com.brunoSantos.wallet_app.transaction.service.FlywaySchemaPostgresTest; do
+            report="target/surefire-reports/TEST-${name}.xml"
+            test -s "$report"
+            grep -Eq '<testsuite .*tests="[1-9][0-9]*"' "$report"
+            grep -Eq '<testsuite .*skipped="0"' "$report"
+          done
+      - name: Suíte e package
+        run: mvn -B package
 
       - name: Publicar relatório de testes
         if: always()
