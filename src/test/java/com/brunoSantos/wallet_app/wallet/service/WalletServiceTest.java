@@ -5,6 +5,9 @@ import com.brunoSantos.wallet_app.asset.domain.AssetType;
 import com.brunoSantos.wallet_app.position.domain.AssetPosition;
 import com.brunoSantos.wallet_app.position.repository.AssetPositionRepository;
 import com.brunoSantos.wallet_app.asset.service.AssetPriceService;
+import com.brunoSantos.wallet_app.dividend.repository.DividendoRecebidoRepository;
+import com.brunoSantos.wallet_app.integration.awesomeapi.client.AwesomeApiClient;
+import com.brunoSantos.wallet_app.integration.awesomeapi.dto.RawCurrencyQuote;
 import com.brunoSantos.wallet_app.wallet.domain.Wallet;
 import com.brunoSantos.wallet_app.wallet.exception.WalletNotFoundException;
 import com.brunoSantos.wallet_app.wallet.repository.WalletRepository;
@@ -35,6 +38,12 @@ class WalletServiceTest {
 
     @Mock
     private AssetPriceService assetPriceService;
+
+    @Mock
+    private DividendoRecebidoRepository dividendRepository;
+
+    @Mock
+    private AwesomeApiClient awesomeApiClient;
 
     @InjectMocks
     private WalletService walletService;
@@ -74,10 +83,50 @@ class WalletServiceTest {
         assertThat(response.ativosCarteira()).isEqualTo(3);
         assertThat(response.distribuicao()).containsExactly(
                 new com.brunoSantos.wallet_app.wallet.dto.WalletBasicInfoResponse.AssetDistribution(
-                        "FII", "87,72%", "1000", 20),
+                        "FII", "87,72%", "1000", "20", 1),
                 new com.brunoSantos.wallet_app.wallet.dto.WalletBasicInfoResponse.AssetDistribution(
-                        "STOCK", "12,28%", "140", 3)
+                        "STOCK", "12,28%", "140", "3", 2)
         );
+    }
+
+    @Test
+    void preserves_fractional_units_and_counts_positions_with_missing_prices() {
+        Wallet wallet = Wallet.builder().id(1L).build();
+        Asset unknown = Asset.builder().ticker("A").currentPrice(null).build();
+        Asset zero = Asset.builder().ticker("B").currentPrice(BigDecimal.ZERO).build();
+        when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
+        when(assetPositionRepository.findAllByWallet(wallet)).thenReturn(List.of(
+                AssetPosition.builder().asset(unknown).quantity(new BigDecimal("1.123456789012")).build(),
+                AssetPosition.builder().asset(zero).quantity(new BigDecimal("2.5")).build(),
+                AssetPosition.builder().asset(zero).quantity(BigDecimal.ZERO).build()));
+        when(dividendRepository.sumByWalletAndPeriodAndCurrency(org.mockito.ArgumentMatchers.eq(1L),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq("BRL"))).thenReturn(new BigDecimal("14.123"));
+        var result = walletService.infoBasica(1L);
+        assertThat(result.patrimonioTotal()).isEqualByComparingTo("0.00");
+        assertThat(result.rendaMensalEst()).isEqualByComparingTo("14.12");
+        assertThat(result.ativosCarteira()).isEqualTo(2);
+        assertThat(result.distribuicao()).containsExactly(
+                new com.brunoSantos.wallet_app.wallet.dto.WalletBasicInfoResponse.AssetDistribution("OUTROS", "0,00%", "0", "3.623456789012", 2));
+        var month = java.time.YearMonth.now(java.time.ZoneId.of("America/Sao_Paulo"));
+        verify(dividendRepository).sumByWalletAndPeriodAndCurrency(1L, month.atDay(1), month.plusMonths(1).atDay(1), "BRL");
+    }
+
+    @Test
+    void converts_usd_at_unrounded_bid_and_reports_nonblocking_failure() {
+        Wallet wallet = Wallet.builder().id(1L).build();
+        when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
+        when(assetPositionRepository.findAllByWallet(wallet)).thenReturn(List.of());
+        when(dividendRepository.sumByWalletAndPeriodAndCurrency(org.mockito.ArgumentMatchers.eq(1L),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq("BRL"))).thenReturn(BigDecimal.TEN);
+        when(dividendRepository.sumByWalletAndPeriodAndCurrency(org.mockito.ArgumentMatchers.eq(1L),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq("USD"))).thenReturn(new BigDecimal("2"));
+        when(awesomeApiClient.getRawQuote("USD-BRL"))
+                .thenReturn(java.util.Map.of("USDBRL", new RawCurrencyQuote("USD", "BRL", new BigDecimal("5.1234"))))
+                .thenThrow(new IllegalStateException("sem cotação"));
+        assertThat(walletService.infoBasica(1L).rendaMensalEst()).isEqualByComparingTo("20.25");
+        var result = walletService.infoBasica(1L);
+        assertThat(result.rendaMensalEst()).isEqualByComparingTo("10.00");
+        assertThat(result.avisos()).containsExactly("ConversaoMoedaIndisponivel");
     }
 
     @Test

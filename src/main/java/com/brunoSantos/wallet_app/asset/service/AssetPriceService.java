@@ -1,6 +1,7 @@
 package com.brunoSantos.wallet_app.asset.service;
 
 import com.brunoSantos.wallet_app.asset.domain.Asset;
+import com.brunoSantos.wallet_app.asset.domain.AssetType;
 import com.brunoSantos.wallet_app.asset.provider.AssetProvider;
 import com.brunoSantos.wallet_app.asset.repository.AssetRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,8 @@ public class AssetPriceService {
 
         var asset = assetRepository.findByTicker(ticker)
                 .orElseThrow();
+
+        if (asset.getType() == AssetType.STOCK_ABROAD) return asset;
 
         var price = priceProvider.getPrice(ticker);
 

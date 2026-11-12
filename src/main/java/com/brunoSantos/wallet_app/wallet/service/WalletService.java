@@ -9,6 +9,8 @@ import com.brunoSantos.wallet_app.wallet.repository.WalletRepository;
 import com.brunoSantos.wallet_app.position.domain.AssetPosition;
 import com.brunoSantos.wallet_app.position.repository.AssetPositionRepository;
 import com.brunoSantos.wallet_app.asset.service.AssetPriceService;
+import com.brunoSantos.wallet_app.dividend.repository.DividendoRecebidoRepository;
+import com.brunoSantos.wallet_app.integration.awesomeapi.client.AwesomeApiClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +24,8 @@ import java.util.Map;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.time.YearMonth;
+import java.time.ZoneId;
 
 @RequiredArgsConstructor
 @Service
@@ -30,6 +34,8 @@ public class WalletService {
     private final WalletRepository walletRepository;
     private final AssetPositionRepository assetPositionRepository;
     private final AssetPriceService assetPriceService;
+    private final DividendoRecebidoRepository dividendRepository;
+    private final AwesomeApiClient awesomeApiClient;
 
     private static final BigDecimal ZERO_MONEY = new BigDecimal("0.00");
     private static final BigDecimal HUNDRED = new BigDecimal("100");
@@ -73,11 +79,30 @@ public class WalletService {
                 .map(entry -> toDistribution(entry.getKey(), entry.getValue(), totalPatrimony))
                 .toList();
 
+        YearMonth month = YearMonth.now(ZoneId.of("America/Sao_Paulo"));
+        BigDecimal income = dividendRepository.sumByWalletAndPeriodAndCurrency(walletId,
+                month.atDay(1), month.plusMonths(1).atDay(1), "BRL");
+        BigDecimal usd = dividendRepository.sumByWalletAndPeriodAndCurrency(walletId,
+                month.atDay(1), month.plusMonths(1).atDay(1), "USD");
+        BigDecimal totalIncome = income == null ? BigDecimal.ZERO : income;
+        List<String> warnings = new java.util.ArrayList<>();
+        if (usd != null && usd.signum() != 0) {
+            try {
+                var response = awesomeApiClient.getRawQuote("USD-BRL");
+                var quote = response == null ? null : response.get("USDBRL");
+                if (quote == null || !"USD".equals(quote.code()) || !"BRL".equals(quote.codeIn())
+                        || quote.bid() == null || quote.bid().signum() <= 0) throw new IllegalStateException("Cotação inválida");
+                totalIncome = totalIncome.add(usd.multiply(quote.bid()));
+            } catch (RuntimeException ex) {
+                warnings.add("ConversaoMoedaIndisponivel");
+            }
+        }
         return new WalletBasicInfoResponse(
                 totalPatrimony.setScale(2, RoundingMode.HALF_UP),
-                ZERO_MONEY,
+                totalIncome.setScale(2, RoundingMode.HALF_UP),
                 positions.size(),
-                distribution
+                distribution,
+                warnings
         );
     }
 
@@ -111,7 +136,8 @@ public class WalletService {
                 assetType,
                 formatPercentage(percentage),
                 value.stripTrailingZeros().toPlainString(),
-                quantity.intValue()
+                quantity.stripTrailingZeros().toPlainString(),
+                positions.size()
         );
     }
 

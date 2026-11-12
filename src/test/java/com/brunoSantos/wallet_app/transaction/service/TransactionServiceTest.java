@@ -4,6 +4,7 @@ import com.brunoSantos.wallet_app.asset.domain.Asset;
 import com.brunoSantos.wallet_app.asset.provider.AssetProvider;
 import com.brunoSantos.wallet_app.asset.provider.AssetTickerResult;
 import com.brunoSantos.wallet_app.asset.repository.AssetRepository;
+import com.brunoSantos.wallet_app.integration.smarterdividends.service.SmarterAssetProvider;
 import com.brunoSantos.wallet_app.position.domain.AssetPosition;
 import com.brunoSantos.wallet_app.position.repository.AssetPositionRepository;
 import com.brunoSantos.wallet_app.transaction.domain.Transaction;
@@ -47,7 +48,9 @@ class TransactionServiceTest {
     @Mock
     private AssetProvider assetProvider;
 
-    @InjectMocks
+    @Mock
+    private SmarterAssetProvider smarterAssetProvider;
+
     private TransactionService transactionService;
 
     private Wallet wallet;
@@ -55,6 +58,8 @@ class TransactionServiceTest {
 
     @BeforeEach
     void setUp() {
+        transactionService = new TransactionService(transactionRepository, walletRepository, assetRepository,
+                positionRepository, assetProvider, smarterAssetProvider);
         wallet = Wallet.builder().id(1L).name("Main").build();
 
         asset = Asset.builder()

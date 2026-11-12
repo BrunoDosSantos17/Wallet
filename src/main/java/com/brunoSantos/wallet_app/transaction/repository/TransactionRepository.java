@@ -6,10 +6,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.List;
 
 public interface TransactionRepository  extends JpaRepository<Transaction, Long> {
     Optional<Transaction> findByWalletIdAndImportIdentity(Long walletId, String importIdentity);
 
     @Query("select max(t.dataTransaction) from Transaction t where t.wallet.id = :walletId and t.asset.ticker = :ticker")
     LocalDate findLatestDate(@Param("walletId") Long walletId, @Param("ticker") String ticker);
+
+    List<Transaction> findByWalletIdAndAssetTickerOrderByDataTransactionAscIdAsc(Long walletId, String ticker);
 }

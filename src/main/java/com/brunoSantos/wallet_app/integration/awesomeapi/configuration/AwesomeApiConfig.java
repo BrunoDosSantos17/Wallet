@@ -6,14 +6,20 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.support.RestClientAdapter;
 import org.springframework.web.service.invoker.HttpServiceProxyFactory;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import java.time.Duration;
 
 @Configuration
 public class AwesomeApiConfig {
 
     @Bean
     public AwesomeApiClient awesomeApiClient() {
+        var requests = new SimpleClientHttpRequestFactory();
+        requests.setConnectTimeout(Duration.ofSeconds(3));
+        requests.setReadTimeout(Duration.ofSeconds(5));
         var restClient = RestClient.builder()
                 .baseUrl("https://economia.awesomeapi.com.br")
+                .requestFactory(requests)
                 .build();
 
         var factory = HttpServiceProxyFactory

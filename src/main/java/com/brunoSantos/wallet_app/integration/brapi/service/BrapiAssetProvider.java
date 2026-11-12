@@ -7,11 +7,13 @@ import com.brunoSantos.wallet_app.shared.exception.TicketNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Primary;
 
 import java.math.BigDecimal;
 import java.util.Locale;
 
 @Component
+@Primary
 @RequiredArgsConstructor
 public class BrapiAssetProvider implements AssetProvider {
 

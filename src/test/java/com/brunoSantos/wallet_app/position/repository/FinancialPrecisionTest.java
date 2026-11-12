@@ -2,6 +2,9 @@ package com.brunoSantos.wallet_app.position.repository;
 
 import com.brunoSantos.wallet_app.asset.domain.Asset;
 import com.brunoSantos.wallet_app.asset.repository.AssetRepository;
+import com.brunoSantos.wallet_app.dividend.domain.DividendoRecebido;
+import com.brunoSantos.wallet_app.dividend.domain.TipoProvento;
+import com.brunoSantos.wallet_app.dividend.repository.DividendoRecebidoRepository;
 import com.brunoSantos.wallet_app.position.domain.AssetPosition;
 import com.brunoSantos.wallet_app.transaction.domain.Transaction;
 import com.brunoSantos.wallet_app.transaction.domain.TransactionType;
@@ -23,6 +26,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -39,7 +43,7 @@ class FinancialPrecisionTest {
         registry.add("spring.datasource.username", () -> System.getenv().getOrDefault("C3_TEST_DB_USER", "proposaldb"));
         registry.add("spring.datasource.password", () -> System.getenv("DB_PASSWORD"));
         registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "validate");
         registry.add("spring.jpa.show-sql", () -> "false");
         registry.add("brapi.token", () -> "test-token-not-used");
     }
@@ -49,12 +53,37 @@ class FinancialPrecisionTest {
     @Autowired private TransactionRepository transactionRepository;
     @Autowired private EntityManager entityManager;
     @Autowired private PlatformTransactionManager transactionManager;
+    @Autowired private DividendoRecebidoRepository dividendRepository;
 
     private TransactionTemplate transactionTemplate;
 
     @BeforeEach
     void setUp() {
         transactionTemplate = new TransactionTemplate(transactionManager);
+    }
+
+    @Test
+    void income_query_includes_only_selected_wallet_and_payment_month_even_for_closed_position() {
+        transactionTemplate.executeWithoutResult(status -> {
+            var wallet = walletRepository.save(Wallet.builder().name("month-test").build());
+            var otherWallet = walletRepository.save(Wallet.builder().name("other-test").build());
+            var asset = assetRepository.save(Asset.builder().ticker("M" + UUID.randomUUID().toString().substring(0, 8)).build());
+            var position = AssetPosition.builder().wallet(wallet).asset(asset).quantity(BigDecimal.ZERO).build();
+            var other = AssetPosition.builder().wallet(otherWallet).asset(asset).quantity(BigDecimal.ZERO).build();
+            entityManager.persist(position);
+            entityManager.persist(other);
+            for (var d : List.of(
+                    new DividendoRecebido(position, new BigDecimal("1.25"), TipoProvento.JCP, LocalDate.parse("2024-11-01"), null, null, null, null, null),
+                    new DividendoRecebido(position, new BigDecimal("2.50"), TipoProvento.DIVIDENDO, LocalDate.parse("2024-11-30"), null, null, null, null, null),
+                    new DividendoRecebido(position, BigDecimal.TEN, TipoProvento.DIVIDENDO, LocalDate.parse("2024-12-01"), null, null, null, null, null),
+                    new DividendoRecebido(other, BigDecimal.TEN, TipoProvento.DIVIDENDO, LocalDate.parse("2024-11-15"), null, null, null, null, null))) {
+                entityManager.persist(d);
+            }
+            entityManager.flush();
+            assertThat(dividendRepository.sumByWalletAndPaymentPeriod(wallet.getId(), LocalDate.parse("2024-11-01"), LocalDate.parse("2024-12-01")))
+                    .isEqualByComparingTo("3.75");
+            status.setRollbackOnly();
+        });
     }
 
     @Test
