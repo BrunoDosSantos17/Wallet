@@ -49,6 +49,22 @@ class WalletServiceTest {
     private WalletService walletService;
 
     @Test
+    void converts_monthly_usd_and_reports_unavailable_exchange_without_blocking() {
+        var wallet = Wallet.builder().id(1L).build();
+        when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
+        when(assetPositionRepository.findAllByWallet(wallet)).thenReturn(List.of());
+        when(dividendRepository.sumByWalletAndPeriodAndCurrency(org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq("BRL"))).thenReturn(BigDecimal.TEN);
+        when(dividendRepository.sumByWalletAndPeriodAndCurrency(org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq("USD"))).thenReturn(new BigDecimal("2"));
+        when(awesomeApiClient.getRawQuote("USD-BRL"))
+                .thenReturn(java.util.Map.of("USDBRL", new RawCurrencyQuote("USD", "BRL", new BigDecimal("5.1234"))))
+                .thenThrow(new IllegalStateException("sem cotação"));
+        assertThat(walletService.infoBasica(1L).rendaMensalEst()).isEqualByComparingTo("20.25");
+        var result = walletService.infoBasica(1L);
+        assertThat(result.rendaMensalEst()).isEqualByComparingTo("10.00");
+        assertThat(result.avisos()).containsExactly("ConversaoMoedaIndisponivel");
+    }
+
+    @Test
     void should_return_basic_wallet_info_with_market_value_distribution() {
         Wallet wallet = Wallet.builder().id(1L).name("Principal").build();
         Asset petr4 = Asset.builder()

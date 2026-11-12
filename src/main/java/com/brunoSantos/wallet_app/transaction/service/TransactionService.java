@@ -132,8 +132,7 @@ public class TransactionService {
                         .lastUpdate(validatedPrice != null ? LocalDateTime.now() : null)
                         .build()));
 
-        if (asset.getType() != null && mapAssetType(tickerInfo.assetType()) != null
-                && asset.getType() != mapAssetType(tickerInfo.assetType()))
+        if (asset.getType() != null && mapAssetType(tickerInfo.assetType()) != null && asset.getType() != mapAssetType(tickerInfo.assetType()))
             throw new TransactionException("Ticker já cadastrado com outro tipo de ativo");
 
         if (validatedPrice != null) {

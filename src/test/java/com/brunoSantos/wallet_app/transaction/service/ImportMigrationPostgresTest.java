@@ -20,7 +20,7 @@ class ImportMigrationPostgresTest {
     void migration_blocks_missing_historical_dates_and_enforces_unique_imports() throws Exception {
         String schema = "c4_fixture_" + UUID.randomUUID().toString().replace("-", "");
         String sql = Files.readString(Path.of("src/main/resources/db/legacy-migration/V20261107_01__import_identity_and_history.sql"));
-        try (var connection = DriverManager.getConnection(System.getenv("C3_TEST_DB_URL"),
+        try (var connection = DriverManager.getConnection(com.brunoSantos.wallet_app.shared.testing.IsolatedPostgres.url(),
                 System.getenv().getOrDefault("C3_TEST_DB_USER", "proposaldb"), System.getenv("DB_PASSWORD"));
              var statement = connection.createStatement()) {
             statement.execute("create schema \"" + schema + "\"");

@@ -73,6 +73,29 @@ PostgreSQL integration tests require an isolated, disposable database supplied b
 run migrations and validate the mappings; the H2 test profile uses Hibernate
 separately and does not validate PostgreSQL migrations.
 
+The JDBC URL guard requires a database named `wallet_test` or
+`wallet_test_<suffix>`, without URL parameters. This is a safety check, **not**
+proof that a database contains no personal data: provision an empty disposable
+database with test-only credentials and never point it to a real environment.
+Tests create, update and delete records and schemas in the target database.
+The CI workflow starts PostgreSQL 17 and runs the required T1 integration tests
+with a check that none were skipped. For a local disposable instance:
+
+```bash
+export C3_TEST_DB_URL=jdbc:postgresql://localhost:5432/wallet_test
+export C3_TEST_DB_USER=wallet_test
+export DB_PASSWORD='<test-only-password>'
+mvn -Dtest=FinancialPrecisionTest,PostgresPrecisionLimitsTest,TransactionConcurrencyTest,WalletLifecycleTest,FlywaySchemaPostgresTest test
+mvn clean install
+```
+
+`DELETE /wallet/{id}` removes that wallet's positions, transactions and dividend
+records in one transaction: the application deletes dividends first, then database
+foreign-key cascades remove positions and transactions. Direct deletion of a
+position with dividends remains blocked. Shared assets and other wallets are
+preserved. This behavior requires Flyway migration V5; review and authorize
+its deployment separately before using it in an existing database.
+
 ### Estimated income synchronization
 
 `POST /dividendos/posicoes/{id}/sincronizar?inicio=YYYY-MM-DD` synchronizes

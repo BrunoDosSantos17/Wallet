@@ -42,7 +42,7 @@ import static org.mockito.Mockito.when;
 class JnjFlowPostgresTest {
     @DynamicPropertySource
     static void configure(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", () -> System.getenv("C3_TEST_DB_URL"));
+        registry.add("spring.datasource.url", com.brunoSantos.wallet_app.shared.testing.IsolatedPostgres::url);
         registry.add("spring.datasource.username", () -> System.getenv().getOrDefault("C3_TEST_DB_USER", "proposaldb"));
         registry.add("spring.datasource.password", () -> System.getenv("DB_PASSWORD"));
         registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");

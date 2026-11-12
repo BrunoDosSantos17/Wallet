@@ -48,8 +48,7 @@ class TransactionServiceTest {
     @Mock
     private AssetProvider assetProvider;
 
-    @Mock
-    private SmarterAssetProvider smarterAssetProvider;
+    @Mock private SmarterAssetProvider smarterAssetProvider;
 
     private TransactionService transactionService;
 

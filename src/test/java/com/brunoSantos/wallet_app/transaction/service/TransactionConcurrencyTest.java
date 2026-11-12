@@ -24,6 +24,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -48,7 +49,7 @@ class TransactionConcurrencyTest {
 
     @DynamicPropertySource
     static void configureIsolatedPostgres(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", () -> System.getenv("C3_TEST_DB_URL"));
+        registry.add("spring.datasource.url", com.brunoSantos.wallet_app.shared.testing.IsolatedPostgres::url);
         registry.add("spring.datasource.username", () -> System.getenv().getOrDefault("C3_TEST_DB_USER", "proposaldb"));
         registry.add("spring.datasource.password", () -> System.getenv("DB_PASSWORD"));
         registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
@@ -62,6 +63,7 @@ class TransactionConcurrencyTest {
     @Autowired private AssetPositionRepository positionRepository;
     @Autowired private TransactionRepository transactionRepository;
     @Autowired private PlatformTransactionManager transactionManager;
+    @Autowired private JdbcTemplate jdbc;
     @Autowired private TransactionService transactionService;
 
     private TransactionTemplate transactionTemplate;
@@ -198,6 +200,32 @@ class TransactionConcurrencyTest {
         assertThat(positionRepository.findAllByWallet(wallet))
                 .filteredOn(position -> position.getAsset().getTicker().equals(asset.getTicker()))
                 .hasSize(1);
+    }
+
+    @Test
+    void pessimistic_wallet_lock_blocks_competing_transaction() throws Exception {
+        var locked = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
+            var holding = executor.submit(() -> transactionTemplate.executeWithoutResult(status -> {
+                walletRepository.findByIdForUpdate(wallet.getId()).orElseThrow();
+                locked.countDown();
+                await(release);
+            }));
+            try {
+                assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
+                assertThatThrownBy(() -> transactionTemplate.executeWithoutResult(status -> {
+                    jdbc.execute("set local lock_timeout = '300ms'");
+                    walletRepository.findByIdForUpdate(wallet.getId()).orElseThrow();
+                })).isInstanceOf(RuntimeException.class).satisfies(ex -> {
+                    Throwable cause = ex;
+                    while (cause != null && !(cause instanceof java.sql.SQLException)) cause = cause.getCause();
+                    assertThat(cause).isInstanceOf(java.sql.SQLException.class);
+                    assertThat(((java.sql.SQLException) cause).getSQLState()).isEqualTo("55P03");
+                });
+            } finally { release.countDown(); }
+            holding.get(15, TimeUnit.SECONDS);
+        }
     }
 
     private void assertTwoTransactionsReadSameVersionThenCompete(AssetPosition position,
