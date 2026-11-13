@@ -20,7 +20,7 @@ public class ImportController {
     private final ImportService importService;
 
     @PostMapping("/{walletId}/import")
-    @Operation(summary = "Importar transações de arquivo XLSX", description = "Envia uma planilha XLSX para importar transações na carteira informada.")
+    @Operation(summary = "Importar transações de arquivo XLS/XLSX", description = "Até 10 MiB, 1 planilha, 5000 linhas de dados e 20 colunas. Fórmulas não são permitidas. Saturação prévia retorna 503; após início, falhas por linha preservam operações concluídas.")
     public ResponseEntity<ImportResponse> importTransactions(
             @PathVariable Long walletId,
             @RequestParam("file") MultipartFile file) throws IOException {

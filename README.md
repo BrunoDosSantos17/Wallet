@@ -187,6 +187,55 @@ Set these as Spring environment properties (for example, `WALLET_ASSETS_PRICE_UP
 
 ## 🧪 Running Tests
 
+### Bounded XLS/XLSX import (R4)
+
+`POST /wallet/{walletId}/import` accepts multipart field `file`: at most **10 MiB**
+per file and **11 MiB** per request (binary units, matching the UI's nominal 10 MB
+limit). The backend checks extension **and** Excel content, the first-row header,
+and workbook structure. Only one sheet, 20 columns and 5,000 data rows are allowed;
+the last row/column index also respects these bounds, including formatted blank
+rows/cells. XLSX expansion is capped at 50 MiB, counting actual ZIP output before
+opening a workbook. XLS uses POI's streaming BIFF event preflight. A bounded
+temporary file is removed after parsing or rejection; no workbook is opened for
+an out-of-bounds structure. POI's existing ZIP safety checks remain enabled.
+
+Required columns (zero-based): 0 `Data`/`Data do Negócio`, 1 `Tipo`/`Tipo de
+Movimentação`, 5 `Ticker`/`Código de Negociação`, 6 `Quantidade`, 7 `Preço`.
+Headers ignore case and accents. Empty files/sheets and invalid headers are
+rejected. Numeric cells and decimal text (`25.50`, `25,50`, `1.234,56`) are
+accepted; formulas anywhere in a data row reject that row **without evaluation**.
+Native Excel dates and text `dd/MM/yyyy` are accepted.
+
+At most two uploads are active per application instance. Groups run on four
+workers with a queue of 100; ticker order within each upload is preserved.
+Saturation before any group is accepted returns **503** with no financial work
+submitted for that upload. Rejected groups after processing starts become
+per-row errors; the request waits for accepted groups and reports actual partial
+results. Multipart size rejection is **413**; invalid workbook/content is **400**.
+There is no global import timeout or claim that disconnects/timeouts undo commits.
+Deployments with multiple instances must enforce any cluster-wide quotas separately.
+
+For requests rejected from their declared Content-Length before the body is
+consumed, the servlet container's bounded discard policy may close the connection
+before the client receives a 413. Clients must also handle transport errors; the
+backend does not disable that safety to drain unbounded oversized bodies.
+
+Brapi and AwesomeAPI have explicit 3-second connection and 10-second read
+timeouts per HTTP call. Successful ticker validation is reused only within the
+current upload; failures are not cached. C4 remains unchanged: at most two
+attempts per row per upload, duplicates without retry, individual operation
+commits, and persisted idempotency identities preventing repeated financial writes.
+Legacy rows with null import identity remain outside automatic deduplication.
+
+R4 tests: `mvn -Dtest=ImportResourceLimitsTest,ImportExecutorConfigurationTest,ImportUploadLimitsTest,BrapiTimeoutTest,AwesomeApiTimeoutTest test`.
+The HTTP multipart tests start only an isolated random-port server with mocked
+persistence and no datasource. Provider timeout tests use localhost only.
+`ImportResourcePostgresTest` uses a synthetic workbook, real commits and a mocked
+provider; it requires the guarded disposable PostgreSQL environment described
+above (no personal XLSX). Run it with `mvn -Dtest=ImportResourcePostgresTest test`.
+JaCoCo (Java 25 compatible) produces `target/site/jacoco/{index.html,jacoco.xml}`
+with `mvn verify`; skipped PostgreSQL tests do **not** establish persistence gates.
+
 ```bash
 ./mvnw test
 ```

@@ -7,6 +7,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.support.RestClientAdapter;
 import org.springframework.web.service.invoker.HttpServiceProxyFactory;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import java.time.Duration;
 
 @Configuration
 public class BrapiConfig {
@@ -18,6 +20,7 @@ public class BrapiConfig {
     public BrapiClient brapiClient() {
         var restClient = RestClient.builder()
                 .baseUrl("https://brapi.dev/api")
+                .requestFactory(requestFactory())
                 .build();
 
         var factory = HttpServiceProxyFactory
@@ -25,6 +28,13 @@ public class BrapiConfig {
                 .build();
 
         return factory.createClient(BrapiClient.class);
+    }
+
+    SimpleClientHttpRequestFactory requestFactory() {
+        var requests = new SimpleClientHttpRequestFactory();
+        requests.setConnectTimeout(Duration.ofSeconds(3));
+        requests.setReadTimeout(Duration.ofSeconds(10));
+        return requests;
     }
 
     @Bean
