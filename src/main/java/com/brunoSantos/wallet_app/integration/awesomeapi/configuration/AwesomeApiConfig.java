@@ -14,12 +14,9 @@ public class AwesomeApiConfig {
 
     @Bean
     public AwesomeApiClient awesomeApiClient() {
-        var requests = new SimpleClientHttpRequestFactory();
-        requests.setConnectTimeout(Duration.ofSeconds(3));
-        requests.setReadTimeout(Duration.ofSeconds(5));
         var restClient = RestClient.builder()
                 .baseUrl("https://economia.awesomeapi.com.br")
-                .requestFactory(requests)
+                .requestFactory(requestFactory())
                 .build();
 
         var factory = HttpServiceProxyFactory
@@ -27,5 +24,12 @@ public class AwesomeApiConfig {
                 .build();
 
         return factory.createClient(AwesomeApiClient.class);
+    }
+
+    SimpleClientHttpRequestFactory requestFactory() {
+        var requests = new SimpleClientHttpRequestFactory();
+        requests.setConnectTimeout(Duration.ofSeconds(3));
+        requests.setReadTimeout(Duration.ofSeconds(10));
+        return requests;
     }
 }
