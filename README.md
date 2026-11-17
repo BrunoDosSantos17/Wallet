@@ -155,6 +155,32 @@ The Scalar page loads its interface from jsDelivr, so the browser needs internet
 | POST | `/wallet/{walletId}/import?file={xlsx}` | Import transactions from an XLSX file |
 | POST | `/wallet/scheduler/asset-price/{acao}` | Enable or disable automatic asset price updates (`ATIVAR` or `DESATIVAR`) |
 
+`GET /wallet/{id}` retains `id`, `name` and `assetPositions`. Each position retains
+`ticker`, `assetName`, `assetType`, `quantity`, `averagePrice`, `totalCost` and adds
+`currentPrice`, `marketValue`, `lastPriceUpdate`. Example (numbers are JSON numbers,
+not strings):
+
+```json
+{"id":1,"name":"Principal","assetPositions":[{"ticker":"PETR4","assetName":"Petrobras","assetType":"STOCK","quantity":1.5,"averagePrice":30.00000000,"totalCost":45.00,"currentPrice":40.00000000,"marketValue":60.00,"lastPriceUpdate":"2026-11-14T10:15:30"}]}
+```
+
+`quantity`, `averagePrice`, `totalCost`, `currentPrice` and `marketValue` use
+BigDecimal JSON decimal numbers (clients requiring exact precision should parse
+as decimals, not binary floating point). Quantity retains its persisted fractional
+scale; average and current price retain persisted scale (up to 8 decimal places
+for average price and 8 for current price). `totalCost` is historical average
+price times quantity, rounded HALF_UP to 2 decimals; `marketValue` is current
+price times quantity, rounded HALF_UP to 2 decimals. They must not be conflated.
+When the current price is missing, `currentPrice`, `marketValue` and
+`lastPriceUpdate` are all JSON null, even if a stale update time exists. A
+persisted zero price is different from a missing price. For a zero-quantity
+position with a known price, `marketValue` is numeric 0.00; existing zero-balance
+and average-price behavior is unchanged. The summary endpoint independently
+treats missing prices as zero for totals and excludes zero-balance positions.
+`lastPriceUpdate` is the persisted LocalDateTime serialized as ISO-8601 local
+date-time, without a timezone or an invented UTC offset. An empty wallet returns
+`assetPositions: []`. Existing fields and endpoints remain available.
+
 ### Transactions
 
 | Method | Endpoint | Description |
